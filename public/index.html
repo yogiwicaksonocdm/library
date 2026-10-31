@@ -66,13 +66,20 @@
     const API_URL = '/api/books';
 
     async function fetchBooks() {
+      const tbody = document.getElementById('bookTableBody');
       try {
         const res = await fetch(API_URL);
-        const result = await res.json();
-        const tbody = document.getElementById('bookTableBody');
+        // Kalau responsnya bukan JSON valid (misal 500 HTML dari Vercel), res.json() akan throw
+        const text = await res.text();
+        let result;
+        try {
+          result = JSON.parse(text);
+        } catch (e) {
+          throw new Error('Respons server bukan JSON (status ' + res.status + '): ' + text.slice(0, 300));
+        }
         tbody.innerHTML = '';
 
-        if (result.data && result.data.length > 0) {
+        if (result && result.data && result.data.length > 0) {
           result.data.forEach(book => {
             const tr = document.createElement('tr');
             tr.className = 'border-b hover:bg-slate-50';
@@ -90,7 +97,11 @@
           tbody.innerHTML = '<tr><td colspan="4" class="text-center p-4 text-slate-500">Belum ada koleksi buku.</td></tr>';
         }
       } catch (err) {
-        console.error(err);
+        console.error('Gagal memuat data buku:', err);
+        tbody.innerHTML = `<tr><td colspan="4" class="text-center p-4 text-red-600">
+          ❌ Gagal memuat data: ${err.message.replace(/</g, '&lt;')}<br>
+          <span class="text-slate-500 text-xs">Cek tab Console untuk log lengkap.</span>
+        </td></tr>`;
       }
     }
 
